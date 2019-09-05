@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Multi-Concourse Fly
+# A time-traveling fly for users of multiple Concourse instances.
+# mcfly will download and choose a version of fly depending on the target.
+
+bindir=$(dirname $0)
+
+get_arch() {
+  local arch=$(uname -m)
+  case "$arch" in
+    x86_64) echo amd64 ;;
+    *) echo "$arch" ;;
+  esac
+}
+
+while getopts :t: opt ; do
+  case $opt in
+    t) target="$OPTARG" ;;
+    \?) ;;
+  esac
+done
+
+#TODO: Is there something better to do when -t is not passed?
+if [ -z "$target" ] ; then
+  echo "mcfly: A target (-t) is required to know what version of fly to use"
+  exit 1
+fi
+
+api=$(yq r ~/.flyrc "targets[$target].api")
+# I don't often parse JSON, but when I do, I prefer a YAML parser.
+version=$(curl -s "$api/api/v1/info" | yq r - "version")
+
+fly="fly-$version"
+
+if ! which -s "$fly" ; then 
+  platform=$(uname | tr '[[:upper:]]' '[[:lower:]]')
+  arch=$(get_arch)
+  read -p "Downloading $fly from $api: Press Enter to continue, ^C to cancel "
+  curl "$api/api/v1/cli?arch=$arch&platform=$platform" -o "$bindir/$fly"
+  chmod +x "$bindir/$fly"
+fi
+
+exec "$fly" "$@"
+
+# vim: set sw=2 sts=2 ai cin et:
