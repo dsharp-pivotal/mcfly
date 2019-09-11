@@ -14,11 +14,14 @@ get_arch() {
   esac
 }
 
-while getopts :t: opt ; do
-  case $opt in
-    t) target="$OPTARG" ;;
-    \?) ;;
+args=("$@")
+while true ; do
+  case $1 in
+    -t|--target) target="$2" ; shift ;;
+    --target=*)  target="${1#--target=}" ;;
+    --|'') break ;;
   esac
+  shift
 done
 
 #TODO: Is there something better to do when -t is not passed?
@@ -41,6 +44,6 @@ if ! which -s "$fly" ; then
   chmod +x "$bindir/$fly"
 fi
 
-exec "$fly" "$@"
+exec "$fly" "${args[@]}"
 
 # vim: set sw=2 sts=2 ai cin et:
