@@ -36,7 +36,7 @@ version=$(curl -s "$api/api/v1/info" | yq r - "version")
 
 fly="fly-$version"
 
-if ! which -s "$fly" ; then 
+if ! type "$fly" > /dev/null; then
   platform=$(uname | tr '[[:upper:]]' '[[:lower:]]')
   arch=$(get_arch)
   read -p "Downloading $fly from $api: Press Enter to continue, ^C to cancel "
