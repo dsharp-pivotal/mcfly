@@ -31,7 +31,7 @@ if [ -z "$target" ] ; then
 fi
 
 api=$(yq r ~/.flyrc "targets[$target].api")
-# I don't often parse JSON, but when I do, I prefer a YAML parser.
+# I don't always parse JSON, but when I do, I prefer a YAML parser.
 version=$(curl -s "$api/api/v1/info" | yq r - "version")
 
 fly="fly-$version"
