@@ -14,15 +14,30 @@ get_arch() {
   esac
 }
 
+latest_downloaded_fly_version() {
+  local latest_fly=$(find "$bindir" -name 'fly-*' | sort -V | tail -n 1)
+  echo "${latest_fly#*fly-}"
+}
+
+cmd_targets=false
+
 args=("$@")
 while true ; do
   case $1 in
     -t|--target) target="$2" ; shift ;;
     --target=*)  target="${1#--target=}" ;;
+    targets)     cmd_targets=true ;;
     --|'') break ;;
   esac
   shift
 done
+
+# TODO: if "login", then use the -c argument for api
+
+if $cmd_targets && [ -z "$target" ] ; then
+  target='<latest>'
+  version=$(latest_downloaded_fly_version)
+fi
 
 #TODO: Is there something better to do when -t is not passed?
 if [ -z "$target" ] ; then
@@ -30,9 +45,11 @@ if [ -z "$target" ] ; then
   exit 1
 fi
 
-api=$(yq r ~/.flyrc "targets[$target].api")
-# I don't always parse JSON, but when I do, I prefer a YAML parser.
-version=$(curl -s "$api/api/v1/info" | yq r - "version")
+if [ -z "$version" ] ; then
+  api=$(yq r ~/.flyrc "targets[$target].api")
+  # I don't always parse JSON, but when I do, I prefer a YAML parser.
+  version=$(curl -s "$api/api/v1/info" | yq r - "version")
+fi
 
 fly="fly-$version"
 
