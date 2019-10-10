@@ -4,7 +4,13 @@
 # A time-traveling fly for users of multiple Concourse instances.
 # mcfly will download and choose a version of fly depending on the target.
 
+set -u
 bindir=$(dirname $0)
+
+die() {
+  echo "mcfly: $*" >&2
+  exit 1
+}
 
 get_arch() {
   local arch=$(uname -m)
@@ -19,37 +25,73 @@ latest_downloaded_fly_version() {
   echo "${latest_fly#*fly-}"
 }
 
+target_api() {
+  local api=$(yq r ~/.flyrc "targets[$target].api")
+  if [ "$api" = 'null' ] ; then
+    die "Target \"$target\" could not be found in ~/.flyrc"
+  fi
+  echo $api
+}
+
+api_version() {
+  # I don't always parse JSON, but when I do, I prefer a YAML parser.
+  curl -s "$api/api/v1/info" | yq r - "version"
+}
+
+determine_fly_version() {
+  #TODO: test cases
+  # fly <no -t> -h           --> latest
+  # fly <no -t> targets      --> latest
+  # fly <no -t> login        --> error
+  # fly <no -t> <else>       --> error
+  # fly -t xyz targets       --> targets[xyz].api | fetch
+  # fly -t xyz login         --> targets[xyz].api | fetch
+  # fly -t xyz login -c API  --> API | fetch
+  # fly -t xyz <else>        --> targets[xyz].api | fetch
+
+  if [ -z "$target" ] ; then
+    if $cmd_targets || $help ; then
+      version=$(latest_downloaded_fly_version)
+    fi
+  else
+    if ! ( $cmd_login && [ -n "$api" ] ) ; then
+      api=$(target_api) || exit $?
+    fi
+    version=$(api_version)
+  fi
+}
+
+target=
+api=
+version=
+
 cmd_targets=false
+cmd_login=false
+help=false
 
 args=("$@")
-while true ; do
+while [ $# -gt 0 ] ; do
   case $1 in
-    -t|--target) target="$2" ; shift ;;
-    --target=*)  target="${1#--target=}" ;;
-    targets)     cmd_targets=true ;;
+    -h|--help)           help=true ;;
+    -t|--target)         target="$2" ; shift ;;
+    --target=*)          target="${1#--target=}" ;;
+    -c|--concourse-url)  if $cmd_login ; then api="$2" ; shift ; fi ;;
+    --concourse-url=*)   if $cmd_login ; then api="${1#--concourse-url=}" ; fi ;;
+    targets)             cmd_targets=true ;;
+    login)               cmd_login=true ;;
     --|'') break ;;
   esac
   shift
 done
 
-# TODO: if "login", then use the -c argument for api
-
-if $cmd_targets && [ -z "$target" ] ; then
-  target='<latest>'
-  version=$(latest_downloaded_fly_version)
-fi
+determine_fly_version
 
 #TODO: Is there something better to do when -t is not passed?
-if [ -z "$target" ] ; then
+if [ -z "$version" ] ; then
   echo "mcfly: A target (-t) is required to know what version of fly to use"
   exit 1
 fi
 
-if [ -z "$version" ] ; then
-  api=$(yq r ~/.flyrc "targets[$target].api")
-  # I don't always parse JSON, but when I do, I prefer a YAML parser.
-  version=$(curl -s "$api/api/v1/info" | yq r - "version")
-fi
 
 fly="fly-$version"
 
