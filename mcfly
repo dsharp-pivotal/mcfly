@@ -69,7 +69,7 @@ download_fly() {
   chmod +x "$bindir/$fly"
 }
 
-main() {
+parse_args() {
   target=
   api=
   version=
@@ -92,7 +92,10 @@ main() {
     esac
     shift
   done
+}
 
+main() {
+  parse_args "$@"
   determine_fly_version
 
   #TODO: Is there something better to do when -t is not passed?
