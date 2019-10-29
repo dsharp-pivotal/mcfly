@@ -69,44 +69,48 @@ download_fly() {
   chmod +x "$bindir/$fly"
 }
 
-target=
-api=
-version=
+main() {
+  target=
+  api=
+  version=
 
-cmd_targets=false
-cmd_login=false
-help=false
+  cmd_targets=false
+  cmd_login=false
+  help=false
 
-args=("$@")
-while [ $# -gt 0 ] ; do
-  case $1 in
-    -h|--help)           help=true ;;
-    -t|--target)         target="$2" ; shift ;;
-    --target=*)          target="${1#--target=}" ;;
-    -c|--concourse-url)  if $cmd_login ; then api="$2" ; shift ; fi ;;
-    --concourse-url=*)   if $cmd_login ; then api="${1#--concourse-url=}" ; fi ;;
-    targets)             cmd_targets=true ;;
-    login)               cmd_login=true ;;
-    --|'') break ;;
-  esac
-  shift
-done
+  args=("$@")
+  while [ $# -gt 0 ] ; do
+    case $1 in
+      -h|--help)           help=true ;;
+      -t|--target)         target="$2" ; shift ;;
+      --target=*)          target="${1#--target=}" ;;
+      -c|--concourse-url)  if $cmd_login ; then api="$2" ; shift ; fi ;;
+      --concourse-url=*)   if $cmd_login ; then api="${1#--concourse-url=}" ; fi ;;
+      targets)             cmd_targets=true ;;
+      login)               cmd_login=true ;;
+      --|'') break ;;
+    esac
+    shift
+  done
 
-determine_fly_version
+  determine_fly_version
 
-#TODO: Is there something better to do when -t is not passed?
-if [ -z "$version" ] ; then
-  echo "mcfly: A target (-t) is required to know what version of fly to use"
-  exit 1
-fi
+  #TODO: Is there something better to do when -t is not passed?
+  if [ -z "$version" ] ; then
+    echo "mcfly: A target (-t) is required to know what version of fly to use"
+    exit 1
+  fi
 
 
-fly="fly-$version"
+  fly="fly-$version"
 
-if ! type "$fly" > /dev/null; then
-  download_fly
-fi
+  if ! type "$fly" > /dev/null; then
+    download_fly
+  fi
 
-exec "$fly" "${args[@]}"
+  exec "$fly" "${args[@]}"
+}
+
+[[ "$0" == "${BASH_SOURCE[0]}" ]] && main "$@"
 
 # vim: set sw=2 sts=2 ai cin et:
