@@ -61,6 +61,14 @@ determine_fly_version() {
   fi
 }
 
+download_fly() {
+  platform=$(uname | tr '[[:upper:]]' '[[:lower:]]')
+  arch=$(get_arch)
+  read -p "Downloading $fly from $api: Press Enter to continue, ^C to cancel "
+  curl "$api/api/v1/cli?arch=$arch&platform=$platform" -o "$bindir/$fly"
+  chmod +x "$bindir/$fly"
+}
+
 target=
 api=
 version=
@@ -96,11 +104,7 @@ fi
 fly="fly-$version"
 
 if ! type "$fly" > /dev/null; then
-  platform=$(uname | tr '[[:upper:]]' '[[:lower:]]')
-  arch=$(get_arch)
-  read -p "Downloading $fly from $api: Press Enter to continue, ^C to cancel "
-  curl "$api/api/v1/cli?arch=$arch&platform=$platform" -o "$bindir/$fly"
-  chmod +x "$bindir/$fly"
+  download_fly
 fi
 
 exec "$fly" "${args[@]}"
