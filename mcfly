@@ -26,7 +26,7 @@ latest_downloaded_fly_version() {
 }
 
 target_api() {
-  local api=$(yq r ~/.flyrc "targets[$target].api")
+  local api=$(yq e ".targets.$target.api" ~/.flyrc)
   if [ "$api" = 'null' ] ; then
     die "Target \"$target\" could not be found in ~/.flyrc"
   fi
@@ -35,7 +35,7 @@ target_api() {
 
 api_version() {
   # I don't always parse JSON, but when I do, I prefer a YAML parser.
-  curl -s "$api/api/v1/info" | yq r - "version"
+  curl -s "$api/api/v1/info" | yq e '.version' -
 }
 
 determine_fly_version() {
