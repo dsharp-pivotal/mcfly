@@ -4,9 +4,6 @@
 # A time-traveling fly for users of multiple Concourse instances.
 # mcfly will download and choose a version of fly depending on the target.
 
-set -u
-bindir=$(dirname $0)
-
 die() {
   echo "mcfly: $*" >&2
   exit 1
@@ -26,7 +23,7 @@ latest_downloaded_fly_version() {
 }
 
 target_api() {
-  local api=$(yq e ".targets.$target.api" ~/.flyrc)
+  local api=$(yq e ".targets.$target.api" $HOME/.flyrc)
   if [ "$api" = 'null' ] ; then
     die "Target \"$target\" could not be found in ~/.flyrc"
   fi
@@ -95,6 +92,9 @@ parse_args() {
 }
 
 main() {
+  set -u
+  bindir=$(dirname $0)
+
   parse_args "$@"
   determine_fly_version
 
